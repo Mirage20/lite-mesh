@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mesh-client
+  labels:
+    app: mesh-client
+spec:
+  selector:
+    matchLabels:
+      app: mesh-client
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mesh-client
+      annotations:
+        "sidecar.istio.io/inject": "false"
+    spec:
+      initContainers:
+      - args:
+        - -p
+        - "15001"
+        - -u
+        - "2020"
+        - -m
+        - REDIRECT
+        - -i
+        - '*'
+        - -x
+        - ""
+        - -b
+        - 80,
+        - -d
+        - ""
+        image: gcr.io/istio-release/proxy_init:1.0.2
+        imagePullPolicy: IfNotPresent
+        name: istio-init
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+      containers:
+      - name: mesh-client
+        image: mirage20/k8s-debug-tools
+        ports:
+        - containerPort: 8080
+        securityContext:
+          capabilities:
+            add: ["NET_ADMIN", "SYS_TIME"]
+      - name: envoy-proxy
+        image: mirage20/envoy-proxy
+        env:
+        - name: loglevel
+          value: trace
+        volumeMounts:
+        - name: envoy-config-volume
+          mountPath: /etc/envoy
+      volumes:
+      - name: envoy-config-volume
+        configMap:
+          name: envoy-config-client
+          items:
+          - key: bootstrap
+            path: envoy.yaml

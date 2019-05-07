@@ -1,0 +1,13 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: mesh-server
+  labels:
+    app: mesh-server
+spec:
+  selector:
+    app: mesh-server
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 2000

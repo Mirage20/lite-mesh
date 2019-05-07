@@ -1,0 +1,29 @@
+apiVersion: v1
+data:
+  bootstrap: "admin:\r\n  access_log_path: /dev/stdout\r\n  address:\r\n    socket_address:\r\n
+    \     protocol: TCP\r\n      address: 127.0.0.1\r\n      port_value: 15000\r\nstatic_resources:\r\n
+    \ listeners:\r\n  - name: virtual\r\n    address:\r\n      socket_address:\r\n
+    \       protocol: TCP\r\n        address: 0.0.0.0\r\n        port_value: 15001\r\n
+    \   filter_chains:\r\n    - filters:\r\n      - name: envoy.tcp_proxy\r\n        config:\r\n
+    \         stat_prefix: BlackHoleCluster\r\n          cluster: BlackHoleCluster\r\n
+    \   - filter_chain_match:\r\n        destination_port: 80\r\n      filters:\r\n
+    \     - name: envoy.http_connection_manager\r\n        config:\r\n          stat_prefix:
+    ingress_http\r\n          access_log:\r\n          - name: envoy.file_access_log\r\n
+    \           config:\r\n              path: /dev/stdout\r\n          route_config:\r\n
+    \           name: local_route\r\n            virtual_hosts:\r\n            - name:
+    local_service\r\n              domains: [\"google.com\",\"example.com\",\"*.facebook.com\"]\r\n
+    \             routes:\r\n              - match:\r\n                  prefix: \"/\"\r\n
+    \               route:\r\n                  cluster: service_example\r\n          http_filters:\r\n
+    \         - name: envoy.router\r\n    - filter_chain_match:\r\n        destination_port:
+    8080\r\n      filters:\r\n      - name: envoy.tcp_proxy\r\n        config:\r\n
+    \         stat_prefix: ingress_tcp\r\n          cluster: mesh_service\r\n    listener_filters:\r\n
+    \     name: envoy.listener.original_dst\r\n  clusters:\r\n  - name: service_example\r\n
+    \   connect_timeout: 1s\r\n    type: STATIC\r\n    hosts:\r\n    - socket_address:\r\n
+    \       address: 93.184.216.34\r\n        port_value: 80\r\n  - name: mesh_service\r\n
+    \   connect_timeout: 1s\r\n    type: STRICT_DNS\r\n    hosts:\r\n    - socket_address:\r\n
+    \       address: mesh-server\r\n        port_value: 8080\r\n  - name: BlackHoleCluster\r\n
+    \   connect_timeout: 1s\r\n"
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: envoy-config-client

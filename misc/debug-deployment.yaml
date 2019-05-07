@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: debug-tools-sidecar
+  labels:
+    app: debug-tools-sidecar
+spec:
+  selector:
+    matchLabels:
+      app: debug-tools-sidecar
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: debug-tools-sidecar
+#      annotations:
+#        "sidecar.istio.io/inject": "false"
+    spec:
+      containers:
+      - name: debug-tools-sidecar
+        image: mirage20/k8s-debug-tools
+        ports:
+        - containerPort: 8080
+        securityContext:
+          capabilities:
+            add: ["NET_ADMIN", "SYS_TIME"]
+#      - name: envoy-proxy
+#        image: envoyproxy/envoy:v1.9.0
+#        volumeMounts:
+#        - name: envoy-config-volume
+#          mountPath: /etc/envoy
+#      volumes:
+#      - name: envoy-config-volume
+#        configMap:
+#          name: envoy-config
+#          items:
+#          - key: bootstrap
+#            path: envoy.yaml

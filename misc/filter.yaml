@@ -1,0 +1,23 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: envoy-oidc-filter
+spec:
+  filters:
+  - filterConfig:
+      grpc_service:
+        google_grpc:
+          stat_prefix: ext_authz
+          target_uri: 172.17.17.1:8081
+        timeout: 10s
+    filterName: envoy.ext_authz
+    filterType: HTTP
+    insertPosition:
+      index: FIRST
+    listenerMatch:
+      listenerProtocol: HTTP
+      listenerType: GATEWAY
+  workloadLabels:
+    app: pet-fe--gateway
+    mesh.cellery.io/cell: pet-fe
+    mesh.cellery.io/gateway: pet-fe--gateway

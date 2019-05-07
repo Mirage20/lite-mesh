@@ -1,0 +1,19 @@
+apiVersion: v1
+data:
+  bootstrap: "admin:\r\n  access_log_path: /dev/stdout\r\n  address:\r\n    socket_address:\r\n
+    \     protocol: TCP\r\n      address: 127.0.0.1\r\n      port_value: 15000\r\nstatic_resources:\r\n
+    \ listeners:\r\n  - name: virtual\r\n    address:\r\n      socket_address:\r\n
+    \       protocol: TCP\r\n        address: 0.0.0.0\r\n        port_value: 15001\r\n
+    \   filter_chains:\r\n    - filters:\r\n      - name: envoy.tcp_proxy\r\n        config:\r\n
+    \         stat_prefix: BlackHoleCluster\r\n          cluster: BlackHoleCluster\r\n
+    \   - filter_chain_match:\r\n        destination_port: 2000\r\n      filters:\r\n
+    \     - name: envoy.tcp_proxy\r\n        config:\r\n          stat_prefix: ingress_tcp\r\n
+    \         cluster: mesh_service\r\n    listener_filters:\r\n      name: envoy.listener.original_dst\r\n
+    \ clusters:\r\n  - name: mesh_service\r\n    connect_timeout: 1s\r\n    type:
+    STATIC\r\n    hosts:\r\n    - socket_address:\r\n        address: 127.0.0.1\r\n
+    \       port_value: 2000\r\n  - name: BlackHoleCluster\r\n    connect_timeout:
+    1s\r\n"
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: envoy-config-server
