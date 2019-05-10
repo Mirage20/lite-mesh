@@ -50,15 +50,28 @@ spec:
       - name: envoy-proxy
         image: mirage20/envoy-proxy
         env:
-        - name: loglevel
-          value: trace
-        volumeMounts:
-        - name: envoy-config-volume
-          mountPath: /etc/envoy
-      volumes:
-      - name: envoy-config-volume
-        configMap:
-          name: envoy-config-client
-          items:
-          - key: bootstrap
-            path: envoy.yaml
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        args:
+        - --bootstrapTemplate
+        - /etc/conf/envoy-bootstrap-template.yaml
+        - --bootstrapConfig
+        - /etc/conf/envoy-bootstrap.yaml
+        - --envoyBinary
+        - /usr/local/bin/envoy
+        - --logLevel
+        - trace
+        - --serviceCluster
+        - mesh-client
+        - --discoveryAddress
+        - 10.100.5.46
+        - --discoveryPort
+        - "9000"

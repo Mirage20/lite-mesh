@@ -1,0 +1,29 @@
+node:
+  id: {{.NodeId}}
+  cluster: {{.ServiceCluster}}
+admin:
+  access_log_path: /dev/stdout
+  address:
+    socket_address:
+      protocol: TCP
+      address: 127.0.0.1
+      port_value: 15000
+static_resources:
+  clusters:
+  - name: xds_cluster
+    connect_timeout: {{.Xds.ConnectionTimeout}}
+    type: {{.Xds.DiscoveryType}}
+    http2_protocol_options: {}
+    hosts:
+    - socket_address:
+        address: {{.Xds.Address}}
+        port_value: {{.Xds.Port}}
+dynamic_resources:
+  ads_config:
+    api_type: GRPC
+    grpc_services:
+      envoy_grpc:
+        cluster_name: xds_cluster
+  lds_config: {ads: {}}
+  cds_config: {ads: {}}
+
