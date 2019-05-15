@@ -1,0 +1,143 @@
+package controller
+
+import (
+	"fmt"
+	"github.com/mirage20/lite-mesh/pkg/apis/mesh/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+)
+
+func CreateServiceDeployment(service *v1alpha1.Service) *appsv1.Deployment {
+	podTemplateAnnotations := map[string]string{}
+	podTemplateAnnotations["sidecar.istio.io/inject"] = "false"
+
+	if len(service.Spec.Container.Name) == 0 {
+		service.Spec.Container.Name = service.Name
+	}
+
+	return &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      deploymentName(service),
+			Namespace: service.Namespace,
+			Labels:    createLabels(service),
+			OwnerReferences: []metav1.OwnerReference{
+				*createServiceOwnerRef(service),
+			},
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: service.Spec.Replicas,
+			Selector: createSelector(service),
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels:      createLabels(service),
+					Annotations: podTemplateAnnotations,
+				},
+				Spec: corev1.PodSpec{
+					InitContainers: []corev1.Container{
+						{
+							Args: []string{
+								"-p",
+								"15001",
+								"-u",
+								"2020",
+								"-m",
+								"REDIRECT",
+								"-i",
+								"*",
+								"-x",
+								"",
+								"-b",
+								"*",
+								"-d",
+								"",
+							},
+							Image: "gcr.io/istio-release/proxy_init:1.0.2",
+							Name:  "iptable-init",
+							SecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{
+									Add: []corev1.Capability{
+										"NET_ADMIN",
+									},
+								},
+							},
+						},
+					},
+					Containers: []corev1.Container{
+						service.Spec.Container,
+						{
+							Args: []string{
+								"--bootstrapTemplate",
+								"/etc/conf/envoy-bootstrap-template.yaml",
+								"--bootstrapConfig",
+								"/etc/conf/envoy-bootstrap.yaml",
+								"--envoyBinary",
+								"/usr/local/bin/envoy",
+								"--logLevel",
+								"trace",
+								"--serviceCluster",
+								service.Name,
+								"--discoveryAddress",
+								"10.100.5.46",
+								"--discoveryPort",
+								"9000",
+							},
+							Env: []corev1.EnvVar{
+								{
+									Name: "POD_NAME",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											APIVersion: "v1",
+											FieldPath:  "metadata.name",
+										},
+									},
+								},
+								{
+									Name: "POD_IP",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											APIVersion: "v1",
+											FieldPath:  "status.podIP",
+										},
+									},
+								},
+							},
+							Image: "mirage20/envoy-proxy",
+							Name:  "envoy-proxy",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func CreateServiceK8sService(service *v1alpha1.Service) *corev1.Service {
+
+	var servicePorts []corev1.ServicePort
+
+	for _, v := range service.Spec.Ports() {
+		servicePorts = append(servicePorts, corev1.ServicePort{
+			Name:       fmt.Sprintf("tcp-%d", v),
+			Protocol:   corev1.ProtocolTCP,
+			Port:       v,
+			TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: v},
+		})
+	}
+
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      k8sServiceName(service),
+			Namespace: service.Namespace,
+			Labels:    createLabels(service),
+			OwnerReferences: []metav1.OwnerReference{
+				*createServiceOwnerRef(service),
+			},
+		},
+		Spec: corev1.ServiceSpec{
+			Ports:    servicePorts,
+			Selector: createLabels(service),
+		},
+	}
+}

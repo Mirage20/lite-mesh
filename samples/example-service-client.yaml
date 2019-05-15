@@ -1,0 +1,9 @@
+apiVersion: mesh.lite.io/v1alpha1
+kind: Service
+metadata:
+  name: mesh-client
+spec:
+  container:
+    image: mirage20/k8s-debug-tools
+    ports:
+    - containerPort: 8080

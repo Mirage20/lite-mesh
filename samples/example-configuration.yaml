@@ -1,0 +1,44 @@
+apiVersion: mesh.lite.io/v1alpha1
+kind: Configuration
+metadata:
+  name: envoy-config
+spec:
+  rules:
+  - match:
+      app: mesh-client
+    filters:
+    - port: 80
+      http:
+      - domains:
+        - "google.com"
+        - "example.com"
+        - "*.facebook.com"
+        cluster: service_example
+      - domains:
+        - "*"
+        cluster: default_cluster
+      tcp:
+        cluster: mesh_service
+    - port: 8080
+      tcp:
+        cluster: mesh_service
+    clusters:
+    - name: service_example
+      host: example.com
+      port: 80
+    - name: default_cluster
+      host: httpbin.org
+      port: 80
+    - name: mesh_service
+      host: mesh-server
+      port: 8080
+  - match:
+      app: mesh-server
+    filters:
+    - port: 2000
+      tcp:
+        cluster: mesh_service
+    clusters:
+    - name: mesh_service
+      host: localhost
+      port: 2000
