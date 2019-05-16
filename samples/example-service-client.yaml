@@ -7,3 +7,7 @@ spec:
     image: mirage20/k8s-debug-tools
     ports:
     - containerPort: 8080
+  envoy:
+    logLevel: debug
+#    discoveryAddress:
+#    discoveryPort:

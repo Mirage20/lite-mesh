@@ -75,13 +75,13 @@ func CreateServiceDeployment(service *v1alpha1.Service) *appsv1.Deployment {
 								"--envoyBinary",
 								"/usr/local/bin/envoy",
 								"--logLevel",
-								"trace",
+								envoyLogLevel(service),
 								"--serviceCluster",
 								service.Name,
 								"--discoveryAddress",
-								"10.100.5.46",
+								envoyDiscoveryAddress(service),
 								"--discoveryPort",
-								"9000",
+								envoyDiscoveryPort(service),
 							},
 							Env: []corev1.EnvVar{
 								{
@@ -103,7 +103,7 @@ func CreateServiceDeployment(service *v1alpha1.Service) *appsv1.Deployment {
 									},
 								},
 							},
-							Image: "mirage20/envoy-proxy",
+							Image: "mirage20/lite-mesh-envoy-bootstrap",
 							Name:  "envoy-proxy",
 						},
 					},
@@ -140,4 +140,25 @@ func CreateServiceK8sService(service *v1alpha1.Service) *corev1.Service {
 			Selector: createLabels(service),
 		},
 	}
+}
+
+func envoyLogLevel(service *v1alpha1.Service) string {
+	if len(service.Spec.Envoy.LogLevel) > 0 {
+		return service.Spec.Envoy.LogLevel
+	}
+	return "info"
+}
+
+func envoyDiscoveryAddress(service *v1alpha1.Service) string {
+	if len(service.Spec.Envoy.DiscoveryAddress) > 0 {
+		return service.Spec.Envoy.DiscoveryAddress
+	}
+	return "10.100.5.46"
+}
+
+func envoyDiscoveryPort(service *v1alpha1.Service) string {
+	if len(service.Spec.Envoy.DiscoveryPort) > 0 {
+		return service.Spec.Envoy.DiscoveryPort
+	}
+	return "9000"
 }

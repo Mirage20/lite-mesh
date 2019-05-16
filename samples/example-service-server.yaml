@@ -13,3 +13,7 @@ spec:
     securityContext:
       capabilities:
         add: ["NET_ADMIN", "SYS_TIME"]
+  envoy:
+    logLevel: debug
+#    discoveryAddress:
+#    discoveryPort:

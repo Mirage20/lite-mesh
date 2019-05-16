@@ -37,8 +37,14 @@ type Service struct {
 type ServiceSpec struct {
 	Replicas  *int32           `json:"replicas"`
 	Container corev1.Container `json:"container"`
+	Envoy     Envoy            `json:"envoy,omitempty"`
 }
 
+type Envoy struct {
+	LogLevel         string `json:"logLevel,omitempty"`
+	DiscoveryAddress string `json:"discoveryAddress,omitempty"`
+	DiscoveryPort    string `json:"discoveryPort,omitempty"`
+}
 type ServiceStatus struct {
 }
 
