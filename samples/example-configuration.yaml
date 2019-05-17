@@ -27,7 +27,7 @@ spec:
       host: example.com
       port: 80
     - name: default_cluster
-      host: httpbin.org
+      host: mesh-gateway
       port: 80
     - name: mesh_service
       host: mesh-server
@@ -42,3 +42,16 @@ spec:
     - name: mesh_service
       host: localhost
       port: 2000
+  - match:
+      app: mesh-gateway
+    filters:
+    - port: 80
+      http:
+      - domains:
+        - "*"
+        cluster: service_example
+    clusters:
+    - name: service_example
+      host: httpbin.org
+      port: 80
+

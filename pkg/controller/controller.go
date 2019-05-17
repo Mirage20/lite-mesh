@@ -160,7 +160,7 @@ func (c *controller) reconcile(key string) error {
 		return err
 	}
 
-	if len(service.Spec.Ports()) > 0 {
+	if len(service.Spec.Ports()) > 0 || service.Spec.Gateway != nil {
 		if err := c.reconcileK8sService(service); err != nil {
 			return err
 		}

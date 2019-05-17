@@ -248,7 +248,7 @@ func buildClusters(clusters []v1alpha1.Cluster) []xdscache.Resource {
 	for _, cluster := range clusters {
 		envoyClusters = append(envoyClusters, &api.Cluster{
 			Name:           cluster.Name,
-			ConnectTimeout: time.Second,
+			ConnectTimeout: time.Second * 10,
 			ClusterDiscoveryType: &api.Cluster_Type{
 				Type: api.Cluster_STRICT_DNS,
 			},

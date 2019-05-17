@@ -1,0 +1,12 @@
+apiVersion: mesh.lite.io/v1alpha1
+kind: Service
+metadata:
+  name: mesh-gateway
+spec:
+  gateway:
+    ports:
+    - 80
+  envoy:
+    logLevel: debug
+#    discoveryAddress:
+#    discoveryPort:

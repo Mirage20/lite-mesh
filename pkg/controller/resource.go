@@ -17,6 +17,53 @@ func CreateServiceDeployment(service *v1alpha1.Service) *appsv1.Deployment {
 		service.Spec.Container.Name = service.Name
 	}
 
+	var containers []corev1.Container
+
+	containers = append(containers, corev1.Container{
+		Args: []string{
+			"--bootstrapTemplate",
+			"/etc/conf/envoy-bootstrap-template.yaml",
+			"--bootstrapConfig",
+			"/etc/conf/envoy-bootstrap.yaml",
+			"--envoyBinary",
+			"/usr/local/bin/envoy",
+			"--logLevel",
+			envoyLogLevel(service),
+			"--serviceCluster",
+			service.Name,
+			"--discoveryAddress",
+			envoyDiscoveryAddress(service),
+			"--discoveryPort",
+			envoyDiscoveryPort(service),
+		},
+		Env: []corev1.EnvVar{
+			{
+				Name: "POD_NAME",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						APIVersion: "v1",
+						FieldPath:  "metadata.name",
+					},
+				},
+			},
+			{
+				Name: "POD_IP",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						APIVersion: "v1",
+						FieldPath:  "status.podIP",
+					},
+				},
+			},
+		},
+		Image: "mirage20/lite-mesh-envoy-bootstrap",
+		Name:  "envoy-proxy",
+	})
+
+	if service.Spec.Gateway == nil {
+		containers = append(containers, service.Spec.Container)
+	}
+
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      deploymentName(service),
@@ -64,49 +111,7 @@ func CreateServiceDeployment(service *v1alpha1.Service) *appsv1.Deployment {
 							},
 						},
 					},
-					Containers: []corev1.Container{
-						service.Spec.Container,
-						{
-							Args: []string{
-								"--bootstrapTemplate",
-								"/etc/conf/envoy-bootstrap-template.yaml",
-								"--bootstrapConfig",
-								"/etc/conf/envoy-bootstrap.yaml",
-								"--envoyBinary",
-								"/usr/local/bin/envoy",
-								"--logLevel",
-								envoyLogLevel(service),
-								"--serviceCluster",
-								service.Name,
-								"--discoveryAddress",
-								envoyDiscoveryAddress(service),
-								"--discoveryPort",
-								envoyDiscoveryPort(service),
-							},
-							Env: []corev1.EnvVar{
-								{
-									Name: "POD_NAME",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											APIVersion: "v1",
-											FieldPath:  "metadata.name",
-										},
-									},
-								},
-								{
-									Name: "POD_IP",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											APIVersion: "v1",
-											FieldPath:  "status.podIP",
-										},
-									},
-								},
-							},
-							Image: "mirage20/lite-mesh-envoy-bootstrap",
-							Name:  "envoy-proxy",
-						},
-					},
+					Containers: containers,
 				},
 			},
 		},
@@ -117,13 +122,24 @@ func CreateServiceK8sService(service *v1alpha1.Service) *corev1.Service {
 
 	var servicePorts []corev1.ServicePort
 
-	for _, v := range service.Spec.Ports() {
-		servicePorts = append(servicePorts, corev1.ServicePort{
-			Name:       fmt.Sprintf("tcp-%d", v),
-			Protocol:   corev1.ProtocolTCP,
-			Port:       v,
-			TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: v},
-		})
+	if service.Spec.Gateway != nil {
+		for _, v := range service.Spec.Gateway.Ports {
+			servicePorts = append(servicePorts, corev1.ServicePort{
+				Name:       fmt.Sprintf("tcp-%d", v),
+				Protocol:   corev1.ProtocolTCP,
+				Port:       v,
+				TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: v},
+			})
+		}
+	} else {
+		for _, v := range service.Spec.Ports() {
+			servicePorts = append(servicePorts, corev1.ServicePort{
+				Name:       fmt.Sprintf("tcp-%d", v),
+				Protocol:   corev1.ProtocolTCP,
+				Port:       v,
+				TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: v},
+			})
+		}
 	}
 
 	return &corev1.Service{
